@@ -2,7 +2,6 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
-#include <vector>
 #include <QTimer>
 #include <QElapsedTimer>
 #include <QPushButton>
@@ -21,11 +20,11 @@ public:
 private:
     static constexpr double MIN_CREATION_INTERVAL = 0.1;
     static constexpr double MAX_CREATION_INTERVAL = 1.0;
-    static constexpr int SPEED = 3;
+
+    static constexpr int MIN_SPEED = 1;
+    static constexpr int MAX_SPEED = 3;
 
     double _creationInterval = MAX_CREATION_INTERVAL;
-    std::unique_ptr<QElapsedTimer> _elapsedTimer;
-    std::unique_ptr<QTimer> _motionTimer;
-    std::vector<std::unique_ptr<QPushButton>> _buttons;
+    QElapsedTimer _elapsed;
 };
 #endif // MAINWINDOW_H

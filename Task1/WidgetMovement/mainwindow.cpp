@@ -5,21 +5,21 @@ MainWindow::MainWindow(QWidget *parent)
 {
     resize(300, 600);
 
-    _motionTimer = std::make_unique<QTimer>();
-    auto elapsed = std::make_shared<QElapsedTimer>();
-    elapsed->start();
-    _motionTimer->start(1000 / 60); // 60 FPS
+    auto motionTimer = new QTimer(this);
+    _elapsed.start();
+    motionTimer->start(1000 / 60); // 60 FPS
 
-    connect(_motionTimer.get(), &QTimer::timeout, this, [this, elapsed]() {
-        static size_t index = 0;
+    connect(motionTimer, &QTimer::timeout, this, [this]() {
+        auto randomGenerator = QRandomGenerator64::global();
         int windowHeight = height();
-        for (auto it = _buttons.begin(); it != _buttons.end();) {
-            auto &button = *it;
-            if (!button->isVisible()) {
+        const auto childrens = children();
+        for (auto *object : childrens) {
+            const auto &button = qobject_cast<QPushButton*>(object);
+            if (!button || !button->isVisible()) {
                 continue;
             }
 
-            int speed = SPEED;
+            int speed = randomGenerator->bounded(MIN_SPEED, MAX_SPEED + 1);;
             if (button->geometry().contains(mapFromGlobal(QCursor::pos()))) {
                 speed *= 2;
             }
@@ -29,37 +29,28 @@ MainWindow::MainWindow(QWidget *parent)
             if (isLose) {
                 setStyleSheet(QStringLiteral("QMainWindow { background-color: red; }"));
                 setWindowTitle(QStringLiteral("Lose!"));
-                (*it)->deleteLater();
-                it = _buttons.erase(it);
-            } else {
-                ++it;
+                button->deleteLater();
             }
         }
 
-        if (elapsed->elapsed() >= _creationInterval) {
-            elapsed->restart();
+        if (_elapsed.elapsed() >= _creationInterval) {
+            _elapsed.restart();
             _creationInterval = MIN_CREATION_INTERVAL +
-                                QRandomGenerator64::global()->bounded(MAX_CREATION_INTERVAL - MIN_CREATION_INTERVAL);
+                                randomGenerator->bounded(MAX_CREATION_INTERVAL - MIN_CREATION_INTERVAL);
 
             int windowWidth = width();
-            auto button = std::make_unique<QPushButton>(QStringLiteral("*"), this);
-            button->move(QRandomGenerator64::global()->bounded(windowWidth), 100);
-            connect(button.get(), &QPushButton::clicked, this, [this, current = button.get()]() {
-                current->hide();
-                auto it = std::find_if(_buttons.begin(), _buttons.end(),
-                                       [current](const auto &element) {
-                                           return element.get() == current;
-                });
+            auto button = new QPushButton(QStringLiteral("*"), this);
+            auto randomX = randomGenerator->bounded(windowWidth);
+            auto randomY = randomGenerator->bounded(100);
 
-                if (it != _buttons.end()) {
-                    current->deleteLater();
-                    _buttons.erase(it);
-                }
+            button->move(randomX, randomY);
+            connect(button, &QPushButton::clicked, this, [button]() {
+                button->hide();
+                button->deleteLater();
             }, Qt::DirectConnection);
             button->show();
-            _buttons.push_back(std::move(button));
         }
-    }, Qt::QueuedConnection);
+    });
 }
 
 MainWindow::~MainWindow()
